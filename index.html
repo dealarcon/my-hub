@@ -39,17 +39,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ni{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:all .15s;user-select:none;margin-bottom:1px;}
 .ni:hover{background:var(--sf2);color:var(--tx);}
 .ni.active{background:var(--ac-bg);color:var(--ac);}
-.ni .ico{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.ni .ico{font-size:16px;width:20px;text-align:center;flex-shrink:0;line-height:1;}
 .sf{margin-top:auto;padding:14px 16px 0;border-top:1px solid var(--br);font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:6px;}
 .sd{width:7px;height:7px;border-radius:50%;background:var(--gn);flex-shrink:0;}
 .sd.off{background:var(--rd);}
 
 /* BOTTOM NAV */
-.bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:#0d0e13;border-top:1px solid var(--br);z-index:100;padding:8px 0 max(8px,env(safe-area-inset-bottom));}
-.bnav-in{display:flex;justify-content:space-around;}
-.bnb{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;cursor:pointer;min-width:52px;}
-.bni{font-size:22px;color:var(--tx3);}
-.bnl{font-size:9px;font-weight:500;color:var(--tx3);}
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:#0d0e13;border-top:0.5px solid rgba(255,255,255,.08);z-index:100;padding:6px 0 max(10px,env(safe-area-inset-bottom));}
+.bnav-in{display:flex;justify-content:space-around;align-items:flex-end;}
+.bnb{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 8px;cursor:pointer;min-width:52px;position:relative;}
+.bnb-pill{width:24px;height:3px;border-radius:2px;background:transparent;margin-bottom:2px;transition:background .2s;}
+.bnb.active .bnb-pill{background:var(--ac);}
+.bni{font-size:22px;color:rgba(255,255,255,.28);transition:color .2s;line-height:1;}
+.bnl{font-size:10px;font-weight:500;color:rgba(255,255,255,.28);letter-spacing:.01em;transition:color .2s;}
 .bnb.active .bni,.bnb.active .bnl{color:var(--ac);}
 
 /* CARDS */
@@ -353,14 +355,17 @@ textarea.inp{resize:vertical;min-height:80px;}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);}
-  .main{margin-left:0;padding-bottom:80px;}
-  .page{padding:20px 16px;}
+  .main{margin-left:0;padding-bottom:80px;overflow-x:hidden;}
+  .page{padding:20px 16px;overflow-x:hidden;}
   .bnav{display:block;}
   .g3{grid-template-columns:1fr 1fr;}
   .g4{grid-template-columns:1fr 1fr;}
   .wkgrid{grid-template-columns:repeat(4,1fr);}
   .fm{display:none;}
-  .sessbar{gap:8px;}
+  .sessbar{gap:8px;flex-wrap:wrap;}
+  .exblock{overflow:hidden;}
+  .srow{flex-wrap:wrap;}
+  .sessbar .btn{width:100%;}
 }
 @media(max-width:480px){
   .g3{grid-template-columns:1fr;}
@@ -422,27 +427,27 @@ input[type=number]{-moz-appearance:textfield;}
 <div class="sidebar" id="sb">
   <div class="logo">🏠 My Hub</div>
   <div class="ns"><div class="nl">Main</div>
-    <div class="ni active" onclick="nav('home',this)"><span class="ico">🏠</span>Home</div>
-    <div class="ni" onclick="nav('checkin',this)"><span class="ico">🌅</span>Check-In</div>
-    <div class="ni" onclick="nav('journal',this)"><span class="ico">📓</span>Journal</div>
+    <div class="ni active" onclick="nav('home',this)"><i class="ti ti-home-2 ico" aria-hidden="true"></i>Home</div>
+    <div class="ni" onclick="nav('checkin',this)"><i class="ti ti-sun ico" aria-hidden="true"></i>Check-In</div>
+    <div class="ni" onclick="nav('journal',this)"><i class="ti ti-notebook ico" aria-hidden="true"></i>Journal</div>
   </div>
   <div class="ns"><div class="nl">Work</div>
-    <div class="ni" onclick="nav('tasks',this)"><span class="ico">✅</span>Tasks</div>
-    <div class="ni" onclick="nav('projects',this)"><span class="ico">🚀</span>Projects</div>
-    <div class="ni" onclick="nav('notes',this)"><span class="ico">📝</span>Notes</div>
+    <div class="ni" onclick="nav('tasks',this)"><i class="ti ti-checkbox ico" aria-hidden="true"></i>Tasks</div>
+    <div class="ni" onclick="nav('projects',this)"><i class="ti ti-rocket ico" aria-hidden="true"></i>Projects</div>
+    <div class="ni" onclick="nav('notes',this)"><i class="ti ti-file-text ico" aria-hidden="true"></i>Notes</div>
   </div>
   <div class="ns"><div class="nl">Health</div>
-    <div class="ni" onclick="nav('health',this)"><span class="ico">💪</span>Health</div>
-    <div class="ni" onclick="nav('workout',this)"><span class="ico">🏋️</span>Today's Workout</div>
-    <div class="ni" onclick="nav('history',this)"><span class="ico">📅</span>Session History</div>
-    <div class="ni" onclick="nav('program',this)"><span class="ico">📋</span>Program Manager</div>
-    <div class="ni" onclick="nav('nutrition',this)"><span class="ico">🍽️</span>Nutrition</div>
+    <div class="ni" onclick="nav('health',this)"><i class="ti ti-activity ico" aria-hidden="true"></i>Health</div>
+    <div class="ni" onclick="nav('workout',this)"><i class="ti ti-barbell ico" aria-hidden="true"></i>Today's Workout</div>
+    <div class="ni" onclick="nav('history',this)"><i class="ti ti-calendar-stats ico" aria-hidden="true"></i>Session History</div>
+    <div class="ni" onclick="nav('program',this)"><i class="ti ti-clipboard-list ico" aria-hidden="true"></i>Program Manager</div>
+    <div class="ni" onclick="nav('nutrition',this)"><i class="ti ti-salad ico" aria-hidden="true"></i>Nutrition</div>
   </div>
   <div class="ns"><div class="nl">Finance</div>
-    <div class="ni" onclick="nav('finance',this)"><span class="ico">💰</span>Finance</div>
+    <div class="ni" onclick="nav('finance',this)"><i class="ti ti-wallet ico" aria-hidden="true"></i>Finance</div>
   </div>
   <div class="ns"><div class="nl">System</div>
-    <div class="ni" onclick="nav('settings',this)"><span class="ico">⚙️</span>Settings</div>
+    <div class="ni" onclick="nav('settings',this)"><i class="ti ti-settings-2 ico" aria-hidden="true"></i>Settings</div>
   </div>
   <div class="sf"><div class="sd" id="sdot"></div><span id="slbl">Loading...</span></div>
 </div>
@@ -450,11 +455,31 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- BOTTOM NAV -->
 <div class="bnav">
   <div class="bnav-in">
-    <div class="bnb active" id="bn-home" onclick="mNav('home',this)"><div class="bni">🏠</div><div class="bnl">Home</div></div>
-    <div class="bnb" id="bn-tasks" onclick="mNav('tasks',this)"><div class="bni">✅</div><div class="bnl">Tasks</div></div>
-    <div class="bnb" id="bn-workout" onclick="mNav('workout',this)"><div class="bni">🏋️</div><div class="bnl">Workout</div></div>
-    <div class="bnb" id="bn-nutrition" onclick="mNav('nutrition',this)"><div class="bni">🍽️</div><div class="bnl">Nutrition</div></div>
-    <div class="bnb" id="bn-more" onclick="toggleMore()"><div class="bni">☰</div><div class="bnl">More</div></div>
+    <div class="bnb active" id="bn-home" onclick="mNav('home',this)">
+      <div class="bnb-pill"></div>
+      <i class="ti ti-home-2 bni" aria-hidden="true"></i>
+      <div class="bnl">Home</div>
+    </div>
+    <div class="bnb" id="bn-tasks" onclick="mNav('tasks',this)">
+      <div class="bnb-pill"></div>
+      <i class="ti ti-checkbox bni" aria-hidden="true"></i>
+      <div class="bnl">Tasks</div>
+    </div>
+    <div class="bnb" id="bn-workout" onclick="mNav('workout',this)">
+      <div class="bnb-pill"></div>
+      <i class="ti ti-barbell bni" aria-hidden="true"></i>
+      <div class="bnl">Workout</div>
+    </div>
+    <div class="bnb" id="bn-nutrition" onclick="mNav('nutrition',this)">
+      <div class="bnb-pill"></div>
+      <i class="ti ti-salad bni" aria-hidden="true"></i>
+      <div class="bnl">Nutrition</div>
+    </div>
+    <div class="bnb" id="bn-more" onclick="toggleMore()">
+      <div class="bnb-pill"></div>
+      <i class="ti ti-dots bni" aria-hidden="true"></i>
+      <div class="bnl">More</div>
+    </div>
   </div>
 </div>
 
@@ -462,15 +487,15 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="moremenu" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:150;" onclick="this.style.display='none'">
   <div style="position:absolute;bottom:70px;left:0;right:0;background:var(--sf);border-top:1px solid var(--br);border-radius:16px 16px 0 0;padding:16px;" onclick="event.stopPropagation()">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('checkin')"><div style="font-size:24px;margin-bottom:4px;">🌅</div><div style="font-size:11px;color:var(--tx2);">Check-In</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('journal')"><div style="font-size:24px;margin-bottom:4px;">📓</div><div style="font-size:11px;color:var(--tx2);">Journal</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('projects')"><div style="font-size:24px;margin-bottom:4px;">🚀</div><div style="font-size:11px;color:var(--tx2);">Projects</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('notes')"><div style="font-size:24px;margin-bottom:4px;">📝</div><div style="font-size:11px;color:var(--tx2);">Notes</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('health')"><div style="font-size:24px;margin-bottom:4px;">💪</div><div style="font-size:11px;color:var(--tx2);">Health</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('history')"><div style="font-size:24px;margin-bottom:4px;">📅</div><div style="font-size:11px;color:var(--tx2);">History</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('program')"><div style="font-size:24px;margin-bottom:4px;">📋</div><div style="font-size:11px;color:var(--tx2);">Program</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('finance')"><div style="font-size:24px;margin-bottom:4px;">💰</div><div style="font-size:11px;color:var(--tx2);">Finance</div></div>
-      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('settings')"><div style="font-size:24px;margin-bottom:4px;">⚙️</div><div style="font-size:11px;color:var(--tx2);">Settings</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('checkin')"><i class="ti ti-sun" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Check-In</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('journal')"><i class="ti ti-notebook" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Journal</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('projects')"><i class="ti ti-rocket" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Projects</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('notes')"><i class="ti ti-file-text" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Notes</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('health')"><i class="ti ti-activity" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Health</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('history')"><i class="ti ti-calendar-stats" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">History</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('program')"><i class="ti ti-clipboard-list" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Program</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('finance')"><i class="ti ti-wallet" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Finance</div></div>
+      <div style="text-align:center;padding:12px;background:var(--sf2);border-radius:10px;cursor:pointer;" onclick="moreNav('settings')"><i class="ti ti-settings-2" aria-hidden="true" style="font-size:24px;color:var(--tx2);margin-bottom:4px;display:block;"></i><div style="font-size:11px;color:var(--tx2);">Settings</div></div>
     </div>
   </div>
 </div>
@@ -506,7 +531,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- TASKS -->
 <div class="page" id="p-tasks">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">✅ Tasks</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-checkbox" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Tasks</div>
   <div class="msub" style="margin-bottom:24px;">Everything you need to get done</div>
   <div class="g3" style="margin-bottom:22px;">
     <div class="card"><div class="mlbl">Total</div><div class="mval" id="ttotal">0</div></div>
@@ -525,7 +550,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- PROJECTS -->
 <div class="page" id="p-projects">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">🚀 Projects</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-rocket" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Projects</div>
   <div class="msub" style="margin-bottom:24px;">Track your work across all areas</div>
   <div class="g3" style="margin-bottom:22px;">
     <div class="card"><div class="mlbl">Active</div><div class="mval" id="pactive">0</div></div>
@@ -544,7 +569,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- NOTES -->
 <div class="page" id="p-notes">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">📝 Notes</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-file-text" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Notes</div>
   <div class="msub" style="margin-bottom:24px;">Ideas, concepts, and research</div>
   <div class="g3" style="margin-bottom:22px;">
     <div class="card"><div class="mlbl">Ideas</div><div class="mval" id="nideas">0</div></div>
@@ -563,7 +588,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- CHECK-IN -->
 <div class="page" id="p-checkin">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">🌅 Morning Check-In</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-sun" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Morning Check-In</div>
   <div class="msub" style="margin-bottom:16px;" id="cidate"></div>
   <div id="ciexist" style="display:none;" class="infobanner">ℹ️ <span>You already checked in today — editing will update your existing entry.</span></div>
   <div class="g2" style="margin-bottom:18px;">
@@ -612,7 +637,7 @@ input[type=number]{-moz-appearance:textfield;}
   <div id="j-list-view">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;">
       <div>
-        <div style="font-size:24px;font-weight:600;">📓 Journal</div>
+        <div style="font-size:24px;font-weight:600;"><i class="ti ti-notebook" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Journal</div>
         <div class="msub" style="margin-bottom:20px;">Private daily log</div>
       </div>
       <button class="btn" style="margin-top:4px;flex-shrink:0;" onclick="openNewJournalEntry()">+ New entry</button>
@@ -666,7 +691,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- HEALTH -->
 <div class="page" id="p-health">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">💪 Health & Fitness</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-activity" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Health & Fitness</div>
   <div class="msub" style="margin-bottom:24px;" id="healthsub"></div>
   <div class="g4" style="margin-bottom:22px;">
     <div class="card"><div class="mlbl">Current</div><div class="mval" id="hcurrent">—</div></div>
@@ -711,7 +736,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- SESSION HISTORY -->
 <div class="page" id="p-history">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">📅 Session History</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-calendar-stats" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Session History</div>
   <div class="msub" style="margin-bottom:24px;">All logged workouts</div>
   <div class="tabs">
     <div class="tab active" onclick="hTab(this,'summary')">Summary</div>
@@ -730,14 +755,14 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- PROGRAM MANAGER -->
 <div class="page" id="p-program">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">📋 Program Manager</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-clipboard-list" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Program Manager</div>
   <div class="msub" style="margin-bottom:24px;">Your weekly training template</div>
   <div id="proggrid"></div>
 </div>
 
 <!-- NUTRITION -->
 <div class="page" id="p-nutrition">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">🍽️ Nutrition</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-salad" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Nutrition</div>
   <div class="msub" style="margin-bottom:16px;" id="nutrdate"></div>
   <div class="card" style="margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
@@ -797,7 +822,7 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
   </div>
   <div id="findash" style="display:none;">
-    <div style="font-size:24px;font-weight:600;margin-bottom:4px;">💰 Finance</div>
+    <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-wallet" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Finance</div>
     <div class="msub" style="margin-bottom:14px;" id="finsub"></div>
     <div class="infobanner" id="discovbanner">ℹ️ <span>Discovery mode — log everything for 30 days without judgment. After that the dashboard tells you where your money is actually going.</span></div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -837,7 +862,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- SETTINGS -->
 <div class="page" id="p-settings">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;">⚙️ Settings</div>
+  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-settings-2" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Settings</div>
   <div class="msub" style="margin-bottom:16px;">All preferences sync to Notion</div>
   <div style="margin-bottom:18px;"><span class="sybadge" id="sysync">✓ Connected</span></div>
   <div id="settingscontent"></div>
@@ -1811,7 +1836,7 @@ async function createLinkedConcept(ideaTitle,proj){
 // ── JOURNAL ───────────────────────────────────────────────
 async function loadJournal(){
   const cached=cacheGet('journal');if(cached?.data)S.journal=cached.data;
-  const data=await nQuery(DB.journal,null,[{property:'Created time',direction:'descending'}]);
+  const data=await nQuery(DB.journal,null,[{timestamp:'created_time',direction:'descending'}]);
   if(!data?.results)return;
   const loaded=data.results.map(p=>({
     id:p.id,
@@ -1838,6 +1863,8 @@ function renderJournal(){
   if(listView)listView.style.display='block';
   if(entryView)entryView.style.display='none';
   const el=document.getElementById('journallist');if(!el)return;
+  // Hydrate from cache if S.journal is empty
+  if(!S.journal.length){const cached=cacheGet('journal');if(cached?.data)S.journal=cached.data;}
   if(!S.journal.length){el.innerHTML='<div class="empty">No entries yet — your morning check-in will create the first one</div>';return;}
   const today=localDate();
   const tc={Personal:'bbl','Work':'bgn',Health:'bam',Finance:'bpu',Reflection:'bpu'};
@@ -2546,14 +2573,18 @@ function renderWoExercises(){
         <div class="exprg">${ex.sets.filter(s=>s.done).length}/${ex.sets.length} · ${ex.sets.reduce((a,s)=>a+s.vol,0).toLocaleString()}lbs</div>
       </div>
       ${ex.sets.map((set,si)=>`
-        <div class="srow">
-          <span class="snum">Set ${si+1}</span>
-          <div class="schk${set.done?' done':''}" onclick="toggleSet(${ei},${si})">${set.done?'✓':''}</div>
-          <input type="number" inputmode="decimal" class="sinp" value="${set.weight}" onchange="updSet(${ei},${si},'weight',this.value)"${set.done?' readonly':''}>
-          <span class="sunt">lbs</span>
-          <input type="number" inputmode="numeric" class="sinp" value="${set.reps}" onchange="updSet(${ei},${si},'reps',this.value)"${set.done?' readonly':''}>
-          <span class="sunt">reps</span>
-          <span class="svol">${set.done?set.vol.toLocaleString()+'lb':'—'}</span>
+        <div class="srow" style="flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+            <span class="snum">Set ${si+1}</span>
+            <div class="schk${set.done?' done':''}" onclick="toggleSet(${ei},${si})">${set.done?'✓':''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;flex:2;min-width:160px;">
+            <input type="number" inputmode="decimal" class="sinp" value="${set.weight}" onchange="updSet(${ei},${si},'weight',this.value)"${set.done?' readonly':''} style="flex:1;min-width:50px;">
+            <span class="sunt">lbs</span>
+            <input type="number" inputmode="numeric" class="sinp" value="${set.reps}" onchange="updSet(${ei},${si},'reps',this.value)"${set.done?' readonly':''} style="flex:1;min-width:40px;">
+            <span class="sunt">reps</span>
+            <span class="svol" style="white-space:nowrap;">${set.done?set.vol.toLocaleString()+'lb':'—'}</span>
+          </div>
         </div>`).join('')}
       <div class="addset" onclick="addSet(${ei})">+ Add set</div>
     </div>`).join('');
@@ -3110,7 +3141,7 @@ function renderSettings(){
     </div>
   </div>
   <div class="ssec">
-    <div class="sstitle">🍽️ Nutrition targets</div>
+    <div class="sstitle"><i class="ti ti-salad" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Nutrition targets</div>
     <div class="card">
       <div class="srow"><div><div class="slb">Daily calories</div></div><div class="sctl"><input class="inp" type="number" inputmode="numeric" value="${get('Daily Calories','2600')}" style="width:80px;text-align:right;" onchange="saveSetting('Daily Calories',this.value)"><span class="sunit">kcal</span></div></div>
       <div class="srow"><div><div class="slb">Maintenance calories</div></div><div class="sctl"><input class="inp" type="number" inputmode="numeric" value="${get('Maintenance Calories','3140')}" style="width:80px;text-align:right;" onchange="saveSetting('Maintenance Calories',this.value)"><span class="sunit">kcal</span></div></div>
@@ -3137,7 +3168,7 @@ function renderSettings(){
     </div>
   </div>
   <div class="ssec">
-    <div class="sstitle">💰 Finance</div>
+    <div class="sstitle"><i class="ti ti-wallet" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Finance</div>
     <div class="card">
       <div class="srow"><div><div class="slb">Tax reserve</div><div class="ssl">% of 1099 income to set aside</div></div><div class="sctl"><input class="inp" type="number" inputmode="numeric" value="${get('Tax Reserve Percent','28')}" style="width:70px;text-align:right;" onchange="saveSetting('Tax Reserve Percent',this.value)"><span class="sunit">%</span></div></div>
       <div class="srow"><div><div class="slb">Emergency fund target</div></div><div class="sctl"><span style="font-size:12px;color:var(--tx3);">$</span><input class="inp" type="number" inputmode="numeric" value="${get('Emergency Fund Target','1000')}" style="width:90px;text-align:right;" onchange="saveSetting('Emergency Fund Target',this.value)"></div></div>
