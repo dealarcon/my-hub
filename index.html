@@ -368,6 +368,18 @@ textarea.inp{resize:vertical;min-height:80px;}
   .wkgrid{grid-template-columns:repeat(2,1fr);}
   .g2{grid-template-columns:1fr;}
 }
+.gcal-row{border-left:3px solid #4285F4;padding-left:9px;}
+.gcal-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;background:#EAF3DE;color:#3B6D11;display:inline-flex;align-items:center;gap:3px;}
+.on-cal-badge{font-size:10px;padding:2px 7px;border-radius:4px;background:#EAF3DE;color:#3B6D11;display:inline-flex;align-items:center;gap:3px;}
+.cal-panel-inline{background:var(--sf2);border:1px solid rgba(74,222,128,.25);border-radius:var(--rs);padding:14px;margin-top:0;border-top-left-radius:0;border-top-right-radius:0;}
+.cal-tog{width:36px;height:20px;border-radius:10px;background:var(--sf2);border:1px solid var(--br);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+.cal-tog.on{background:var(--ac);border-color:var(--ac);}
+.cal-tog-knob{width:14px;height:14px;border-radius:50%;background:var(--tx3);position:absolute;top:2px;left:2px;transition:all .15s;}
+.cal-tog.on .cal-tog-knob{background:#fff;left:20px;}
+.tact{display:flex;gap:3px;flex-shrink:0;}
+.tact-btn{width:26px;height:26px;border-radius:5px;border:1px solid var(--br);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--tx2);transition:all .15s;}
+.tact-btn:hover{border-color:var(--br2);color:var(--tx);}
+.tact-btn.gcal-btn{color:#3B6D11;border-color:rgba(74,222,128,.3);}
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input[type=number]{-moz-appearance:textfield;}
@@ -1048,6 +1060,36 @@ input[type=number]{-moz-appearance:textfield;}
   </div>
 </div>
 
+<!-- EDIT TASK MODAL -->
+<div id="m-edittask" style="display:none;" class="overlay">
+  <div class="modal" style="width:500px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="mtitle" style="margin-bottom:0;">Edit task</div>
+      <span style="font-size:11px;color:var(--tx3);" id="met-edited"></span>
+    </div>
+    <input type="hidden" id="met-id">
+    <label class="flbl">Task name</label><input class="inp" id="met-name" placeholder="Task name">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+      <div><label class="flbl" style="margin-top:0;">Category</label><select class="sel" id="met-cat"><option>Work</option><option>Personal</option><option>Chores</option></select></div>
+      <div><label class="flbl" style="margin-top:0;">Status</label><select class="sel" id="met-status"><option>To Do</option><option>In Progress</option><option>Done</option></select></div>
+    </div>
+    <label class="flbl">Due date</label><input class="inp" id="met-due" type="date">
+    <label class="flbl">Notes</label><input class="inp" id="met-notes" placeholder="Extra context...">
+    <div style="border:none;border-top:1px solid var(--br);margin:12px 0;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:5px;">↻ Repeats</div>
+      <div style="font-size:12px;color:var(--ac);background:var(--ac-bg);padding:4px 10px;border-radius:6px;cursor:pointer;" id="met-rec-badge" onclick="openRecEdit()">Does not repeat ›</div>
+    </div>
+    <div class="mfooter">
+      <button class="btn danger" onclick="deleteEditedTask()">Delete</button>
+      <button class="btn sec" onclick="closeM('m-edittask')">Cancel</button>
+      <button class="btn" onclick="saveEditedTask()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- GOOGLE CALENDAR EVENT PANEL (inline, rendered in JS) -->
+
 <!-- ADD/EDIT EXERCISE MODAL -->
 <div id="m-addex" style="display:none;" class="overlay">
   <div class="modal"><div class="mtitle" id="mex-modal-title">Add exercise</div>
@@ -1145,6 +1187,11 @@ const S = {
   deleteUndo: {},
   todayJournalId: localStorage.getItem('journalId_'+new Date().toISOString().split('T')[0]) || null,
   currentJournalEntry: null,
+  gcalConnected: false,
+  gcalCalendars: [],
+  gcalEvents: [],
+  gcalSyncedCalendars: JSON.parse(localStorage.getItem('gcal_cals')||'[]'),
+  calPanelTaskId: null,
 };
 
 // ── NOTION API ───────────────────────────────────────────
@@ -1473,7 +1520,9 @@ async function loadTasks(){
 function renderTasks(){
   const f=S.tFilter;
   const today=new Date().toISOString().split('T')[0];
-  let list=S.tasks;
+  // Mix in GCal events as task-like items
+  const gcalItems=f==='all'||f==='todo'?S.gcalEvents.map(e=>({...e,cat:'',due:e.date})):[];
+  let list=[...S.tasks,...gcalItems];
   if(f==='todo')list=list.filter(t=>t.status==='To Do');
   else if(f==='inprog')list=list.filter(t=>t.status==='In Progress');
   else if(f==='done')list=list.filter(t=>t.status==='Done');
@@ -1492,14 +1541,25 @@ function renderTasks(){
       const ov=t.due&&t.due<today&&t.status!=='Done';
       const ds=t.due?new Date(t.due+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
       const recLabel=t.rec&&t.recPattern?recToText(t.recPattern):'';
-      html+=`<div class="trow" draggable="true" data-id="${t.id}" ondragstart="dStart(event)" ondragover="dOver(event)" ondrop="dDrop(event,true)">
-        <div class="tchk ${cc}" onclick="cycleTask('${t.id}')">${t.status==='Done'?'✓':''}</div>
+      const isGcal=t.isGcal;
+      const gcalBadge=t.onCalendar&&!isGcal?'<span class="on-cal-badge">📅 On calendar</span>':'';
+      html+=`<div class="trow${isGcal?' gcal-row':''}" draggable="${!isGcal}" data-id="${t.id}" ${!isGcal?'ondragstart="dStart(event)" ondragover="dOver(event)" ondrop="dDrop(event,true)"':''}>
+        <div class="tchk ${cc}" onclick="${isGcal?'':"cycleTask('"+t.id+"')"}" style="${isGcal?'background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.3);cursor:default;':'cursor:pointer;'}">${t.status==='Done'?'✓':''}</div>
         <div class="tmain">
           <div class="tname${t.status==='Done'?' done':''}">${t.name}</div>
-          ${recLabel?`<div class="rec-info">↻ ${recLabel}</div>`:''}
-          ${t.notes?`<div class="tnote">${t.notes}</div>`:''}
+          ${isGcal&&t.start?`<div class="rec-info" style="color:#3B6D11;">📅 ${new Date(t.start).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}${!t.allDay?' · '+new Date(t.start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+' – '+new Date(t.end).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}${t.calName?' · '+t.calName:''}</div>`:''}
+          ${!isGcal&&recLabel?`<div class="rec-info">↻ ${recLabel}</div>`:''}
+          ${!isGcal&&ds?`<div class="rec-info">${ov?'⚠️ Overdue':ds}</div>`:''}
+          ${gcalBadge}
         </div>
-        <div class="tmeta">${ds?`<span class="tdue${ov?' over':''}">${ov?'Overdue':ds}</span>`:''}<span class="b ${bc}">${t.cat}</span><span style="color:var(--color-text-danger);cursor:pointer;padding:4px;font-size:14px;opacity:0.6;" onclick="deleteItem(S.tasks,'${t.id}',DB.tasks,renderTasks)" title="Delete">🗑</span></div>
+        <div class="tmeta">
+          ${isGcal?'<span class="gcal-badge">GCal</span>':'<span class="b '+bc+'">'+t.cat+'</span>'}
+          <div class="tact">
+            ${!isGcal?`<div class="tact-btn" onclick="openEditTask('${t.id}')" title="Edit">✏️</div>`:''}
+            ${!isGcal&&S.gcalConnected?`<div class="tact-btn gcal-btn" onclick="openCalPanel('${t.id}')" title="Add to Google Calendar">📅</div>`:''}
+            <div class="tact-btn" style="color:var(--rd);border-color:var(--rd-br);" onclick="deleteItem(${isGcal?'S.gcalEvents':'S.tasks'},'${t.id}',${isGcal?'null':'DB.tasks'},renderTasks)" title="Delete">🗑</div>
+          </div>
+        </div>
       </div>`;
     });
   });
@@ -3098,6 +3158,8 @@ function renderSettings(){
   <div class="ssec">
     <div class="sstitle">🔑 Account & data</div>
     <div class="card">
+      <div class="srow"><div><div class="slb">Google Calendar</div><div class="ssl">${S.gcalConnected?'Connected — events syncing':'Not connected'}</div></div><div class="sctl">${S.gcalConnected?`<button class="btn sec" style="font-size:11px;" onclick="gcalDisconnect()">Disconnect</button>`:`<a href="/api/auth" class="btn" style="font-size:11px;text-decoration:none;">Connect Google Calendar</a>`}</div></div>
+      ${S.gcalConnected&&S.gcalCalendars.length?`<div class="srow"><div><div class="slb">Calendars to sync</div><div class="ssl">Select which calendars appear in your task list</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0;">${S.gcalCalendars.map(c=>`<div onclick="toggleGcalCal('${c.id}')" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:12px;border:1px solid ${S.gcalSyncedCalendars.includes(c.id)?'rgba(74,222,128,.4)':'var(--br)'};background:${S.gcalSyncedCalendars.includes(c.id)?'rgba(74,222,128,.1)':'var(--sf2)'};cursor:pointer;font-size:12px;color:${S.gcalSyncedCalendars.includes(c.id)?'#4ade80':'var(--tx2)'}"><div style="width:8px;height:8px;border-radius:50%;background:${c.color||'#4285F4'};flex-shrink:0;"></div>${c.name}</div>`).join('')}</div>`:''}
       <div class="srow"><div><div class="slb">Notion token</div><div class="ssl">Set as NOTION_TOKEN in Netlify → Site settings → Environment variables</div></div><div class="sctl" style="flex-direction:column;align-items:flex-end;gap:6px;"><div style="font-size:11px;color:var(--ac);background:var(--ac-bg);padding:5px 10px;border-radius:6px;border:1px solid var(--ac-br);">Secured server-side ✓</div><button id="test-conn-btn" class="btn sec" style="font-size:11px;padding:5px 12px;" onclick="testConnection()">Test connection</button></div></div>
       <div class="srow"><div><div class="slb">Sync status</div></div><div class="sctl"><span class="sybadge ${S.online?'':'off'}" id="sysync">${S.online?'✓ Connected':'✗ Offline'}</span></div></div>
       <div class="srow"><div><div class="slb">Queued changes</div><div class="ssl">Will sync when connected</div></div><div class="sctl"><span style="font-size:13px;color:var(--tx);">${S.queue.length}</span></div></div>
@@ -3138,9 +3200,218 @@ function clearCache(){
 }
 
 // ── INIT ─────────────────────────────────────────────────
+// ── GOOGLE CALENDAR ──────────────────────────────────────
+async function gcalReq(action, method='GET', body=null){
+  const url='/api/calendar?action='+action;
+  try{
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+    if(r.status===401){S.gcalConnected=false;return null;}
+    return r.json();
+  }catch(e){return null;}
+}
+
+async function checkGcalConnection(){
+  const r=await gcalReq('status');
+  S.gcalConnected=!!(r?.connected);
+  syncStatus();
+  return S.gcalConnected;
+}
+
+async function loadGcalCalendars(){
+  const data=await gcalReq('list_calendars');
+  if(!data?.items)return;
+  S.gcalCalendars=data.items.map(c=>({id:c.id,name:c.summary,color:c.backgroundColor||'#4285F4',primary:c.primary||false}));
+  if(!S.gcalSyncedCalendars.length){
+    // Default: sync primary calendar
+    S.gcalSyncedCalendars=S.gcalCalendars.filter(c=>c.primary).map(c=>c.id);
+    localStorage.setItem('gcal_cals',JSON.stringify(S.gcalSyncedCalendars));
+  }
+}
+
+async function loadGcalEvents(){
+  if(!S.gcalConnected||!S.gcalSyncedCalendars.length)return;
+  const now=new Date();
+  const timeMin=new Date(now.getFullYear(),now.getMonth(),now.getDate()).toISOString();
+  const timeMax=new Date(now.getFullYear(),now.getMonth(),now.getDate()+14).toISOString();
+  S.gcalEvents=[];
+  for(const calId of S.gcalSyncedCalendars){
+    const cal=S.gcalCalendars.find(c=>c.id===calId);
+    const data=await gcalReq('events&calendarId='+encodeURIComponent(calId)+'&timeMin='+encodeURIComponent(timeMin)+'&timeMax='+encodeURIComponent(timeMax));
+    if(data?.items){
+      data.items.forEach(ev=>{
+        const start=ev.start?.dateTime||ev.start?.date||'';
+        const end=ev.end?.dateTime||ev.end?.date||'';
+        S.gcalEvents.push({
+          id:'gcal_'+ev.id,gcalId:ev.id,calId,
+          name:ev.summary||'(No title)',
+          start,end,
+          date:start.split('T')[0],
+          allDay:!ev.start?.dateTime,
+          color:cal?.color||'#4285F4',
+          calName:cal?.name||'',
+          isGcal:true,
+          status:'To Do',
+        });
+      });
+    }
+  }
+  cacheSet('gcal_events',S.gcalEvents);
+}
+
+function openCalPanel(taskId){
+  S.calPanelTaskId=taskId;
+  const t=S.tasks.find(t=>t.id===taskId);if(!t)return;
+  const panelId='cal-panel-'+taskId;
+  // Close any open panels
+  document.querySelectorAll('.cal-panel-inline').forEach(p=>{if(p.id!==panelId)p.remove();});
+  const existing=document.getElementById(panelId);
+  if(existing){existing.remove();S.calPanelTaskId=null;return;}
+  const row=document.querySelector('.trow[data-id="'+taskId+'"]');if(!row)return;
+  const calList=S.gcalCalendars.length
+    ?S.gcalCalendars.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
+    :'<option value="primary">Primary</option>';
+  const defaultTime=t.due?t.due+'T09:00':'';
+  const endTime=t.due?t.due+'T10:00':'';
+  const panel=document.createElement('div');
+  panel.id=panelId;
+  panel.className='cal-panel-inline card';
+  panel.style.marginBottom='5px';
+  panel.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:26px;height:26px;border-radius:6px;background:rgba(74,222,128,.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📅</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:var(--tx);">Add to Google Calendar</div><div style="font-size:10px;color:var(--tx3);">Creates an event on your calendar</div></div>
+      <span style="cursor:pointer;color:var(--tx3);font-size:16px;" onclick="document.getElementById('${panelId}').remove()">✕</span>
+    </div>
+    <label class="flbl" style="margin-top:0;">Event title</label>
+    <input class="inp" id="cpe-title" value="${t.name}" style="margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl" style="margin-top:0;">Date</label><input class="inp" id="cpe-date" type="date" value="${t.due||''}"></div>
+      <div><label class="flbl" style="margin-top:0;">Calendar</label><select class="sel" id="cpe-cal">${calList}</select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:8px;">
+      <div><label class="flbl" style="margin-top:0;">Start</label><input class="inp" id="cpe-start" type="time" value="09:00"></div>
+      <div style="margin-top:18px;text-align:center;font-size:12px;color:var(--tx3);">→</div>
+      <div><label class="flbl" style="margin-top:0;">End</label><input class="inp" id="cpe-end" type="time" value="10:00"></div>
+    </div>
+    <label class="flbl">Location (optional)</label>
+    <input class="inp" id="cpe-location" placeholder="Add location..." style="margin-bottom:8px;">
+    ${t.rec&&t.recPattern?`<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;font-size:12px;color:var(--tx2);"><input type="checkbox" id="cpe-recurring" style="width:15px;height:15px;"> Sync recurrence to Google Calendar</label>`:''}
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--br);">
+      <button class="btn sec" onclick="document.getElementById('${panelId}').remove()">Cancel</button>
+      <button class="btn" id="cpe-save" onclick="createCalEvent('${taskId}','${panelId}')">Create event</button>
+    </div>`;
+  row.insertAdjacentElement('afterend',panel);
+}
+
+async function createCalEvent(taskId,panelId){
+  const t=S.tasks.find(t=>t.id===taskId);if(!t)return;
+  const title=document.getElementById('cpe-title')?.value||t.name;
+  const date=document.getElementById('cpe-date')?.value||t.due;
+  const startT=document.getElementById('cpe-start')?.value||'09:00';
+  const endT=document.getElementById('cpe-end')?.value||'10:00';
+  const calId=document.getElementById('cpe-cal')?.value||'primary';
+  const loc=document.getElementById('cpe-location')?.value||'';
+  const syncRec=document.getElementById('cpe-recurring')?.checked;
+  if(!date){toast('Set a due date first','err');return;}
+  const btn=document.getElementById('cpe-save');if(btn)btn.textContent='Creating...';
+  const event={summary:title,start:{dateTime:date+'T'+startT+':00',timeZone:'America/Los_Angeles'},end:{dateTime:date+'T'+endT+':00',timeZone:'America/Los_Angeles'}};
+  if(loc)event.location=loc;
+  if(syncRec&&t.recPattern){
+    const rrule=patternToRRule(t.recPattern);
+    if(rrule)event.recurrence=['RRULE:'+rrule];
+  }
+  const r=await gcalReq('create','POST',{calendarId:calId,event});
+  if(r?.id){
+    t.gcalEventId=r.id;t.gcalCalId=calId;t.onCalendar=true;
+    if(!t.id.startsWith('l'))await nUpdate(t.id,{'Notes':{rich_text:[{text:{content:(t.notes||'')+' [gcal:'+r.id+']'}}]}});
+    document.getElementById(panelId)?.remove();
+    renderTasks();
+    toast('Event created on Google Calendar');
+  } else {
+    if(btn)btn.textContent='Create event';
+    toast('Failed to create event','err');
+  }
+}
+
+async function gcalDisconnect(){
+  await gcalReq('disconnect','POST');
+  S.gcalConnected=false;S.gcalEvents=[];S.gcalCalendars=[];
+  renderTasks();if(document.getElementById('p-settings').classList.contains('active'))renderSettings();
+  toast('Google Calendar disconnected');
+}
+function toggleGcalCal(calId){
+  if(S.gcalSyncedCalendars.includes(calId))S.gcalSyncedCalendars=S.gcalSyncedCalendars.filter(c=>c!==calId);
+  else S.gcalSyncedCalendars.push(calId);
+  localStorage.setItem('gcal_cals',JSON.stringify(S.gcalSyncedCalendars));
+  loadGcalEvents().then(()=>renderTasks());
+  renderSettings();
+}
+function patternToRRule(p){
+  if(!p||p.freq==='none')return null;
+  const dayMap=['SU','MO','TU','WE','TH','FR','SA'];
+  if(p.freq==='daily')return'FREQ=DAILY;INTERVAL='+(p.interval||1);
+  if(p.freq==='weekly'){const days=(p.days||[]).map(d=>dayMap[d]).join(',');return'FREQ=WEEKLY;INTERVAL='+(p.interval||1)+';BYDAY='+days;}
+  if(p.freq==='monthly')return'FREQ=MONTHLY;INTERVAL='+(p.interval||1);
+  if(p.freq==='yearly')return'FREQ=YEARLY;INTERVAL='+(p.interval||1);
+  return null;
+}
+
+// ── EDIT TASK ──────────────────────────────────────────────
+function openEditTask(id){
+  const t=S.tasks.find(t=>t.id===id);if(!t)return;
+  document.getElementById('met-id').value=id;
+  document.getElementById('met-name').value=t.name||'';
+  document.getElementById('met-cat').value=t.cat||'Work';
+  document.getElementById('met-status').value=t.status||'To Do';
+  document.getElementById('met-due').value=t.due||'';
+  document.getElementById('met-notes').value=t.notes||'';
+  const rb=document.getElementById('met-rec-badge');
+  if(rb)rb.textContent=(t.recPattern?recToText(t.recPattern):'Does not repeat')+' ›';
+  const ed=document.getElementById('met-edited');
+  if(ed)ed.textContent='';
+  openM('m-edittask');
+}
+
+async function saveEditedTask(){
+  const id=document.getElementById('met-id').value;
+  const t=S.tasks.find(t=>t.id===id);if(!t)return;
+  const name=document.getElementById('met-name').value.trim()||t.name;
+  const cat=document.getElementById('met-cat').value;
+  const status=document.getElementById('met-status').value;
+  const due=document.getElementById('met-due').value;
+  const notes=document.getElementById('met-notes').value;
+  Object.assign(t,{name,cat,status,due,notes});
+  renderTasks();closeM('m-edittask');
+  if(!id.startsWith('l')&&S.online){
+    const props={'Task Name':{title:[{text:{content:name}}]},'Category':{select:{name:cat}},'Status':{select:{name:status}}};
+    if(notes)props['Notes']={rich_text:[{text:{content:notes}}]};
+    if(due)props['Due Date']={date:{start:due}};
+    await nUpdate(id,props);
+  }
+  toast('Task updated');
+}
+
+function deleteEditedTask(){
+  const id=document.getElementById('met-id').value;
+  closeM('m-edittask');
+  deleteItem(S.tasks,id,DB.tasks,renderTasks);
+}
+
+function openRecEdit(){
+  closeM('m-edittask');
+  openTaskModal();
+}
+
 async function init(){
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
   syncStatus();
+  // Check Google Calendar connection
+  checkGcalConnection().then(connected=>{
+    if(connected){loadGcalCalendars().then(()=>{loadGcalEvents().then(()=>renderTasks());});}
+  });
+  const urlP=new URLSearchParams(window.location.search);
+  if(urlP.get('gcal_connected')){toast('Google Calendar connected!');history.replaceState({},'',window.location.pathname);}
+  if(urlP.get('gcal_error')){toast('Calendar error: '+urlP.get('gcal_error'),'err');history.replaceState({},'',window.location.pathname);}
   await loadSettings();
   applyTheme();
   renderHome();
