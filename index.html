@@ -371,6 +371,20 @@ textarea.inp{resize:vertical;min-height:80px;}
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input[type=number]{-moz-appearance:textfield;}
+.rec-freq-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
+.rec-fpill{font-size:11px;font-weight:500;padding:5px 10px;border-radius:20px;border:1px solid var(--br);color:var(--tx2);cursor:pointer;background:var(--sf2);user-select:none;transition:all .15s;}
+.rec-fpill:hover{border-color:var(--br2);color:var(--tx);}
+.rec-fpill.active{background:var(--ac-bg);color:var(--ac);border-color:var(--ac-br);}
+.rec-day-pills{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;}
+.rec-dpill{width:32px;height:32px;border-radius:50%;border:1px solid var(--br);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--tx2);cursor:pointer;user-select:none;transition:all .15s;background:var(--sf2);}
+.rec-dpill:hover{border-color:var(--br2);}
+.rec-dpill.active{background:var(--ac-bg);color:var(--ac);border-color:var(--ac-br);}
+.rec-panel{background:var(--sf2);border:1px solid var(--br);border-radius:var(--rs);padding:12px 14px;margin-top:6px;}
+.rec-sublbl{font-size:10px;font-weight:600;color:var(--tx3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;}
+.rec-summary{background:var(--ac-bg);border:1px solid var(--ac-br);border-radius:var(--rs);padding:8px 12px;margin-top:10px;font-size:12px;color:var(--ac);font-weight:500;}
+.rec-ends{display:flex;flex-direction:column;gap:7px;}
+.rec-end-opt{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx);cursor:pointer;}
+.rec-info{font-size:11px;color:var(--tx3);margin-top:2px;display:flex;align-items:center;gap:4px;}
 .jcard{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
 .jcard:hover{border-color:var(--br2);}
 .jcard.today-entry{border-color:var(--ac-br);background:var(--ac-bg);}
@@ -494,7 +508,7 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="tab" onclick="tTab(this,'done')">Done</div>
   </div>
   <div id="tasklist"></div>
-  <button class="addbtn" onclick="openM('m-task')">+ New task</button>
+  <button class="addbtn" onclick="openTaskModal()">+ New task</button>
 </div>
 
 <!-- PROJECTS -->
@@ -821,13 +835,58 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- MODALS -->
 <div id="m-task" style="display:none;" class="overlay">
-  <div class="modal"><div class="mtitle">New task</div>
+  <div class="modal" style="width:500px;">
+    <div class="mtitle">New task</div>
     <label class="flbl">Task name</label><input class="inp" id="mt-name" placeholder="What needs to get done?">
-    <label class="flbl">Category</label><select class="sel" id="mt-cat"><option>Work</option><option>Personal</option><option>Chores</option></select>
-    <label class="flbl">Status</label><select class="sel" id="mt-status"><option>To Do</option><option>In Progress</option></select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+      <div><label class="flbl" style="margin-top:0;">Category</label><select class="sel" id="mt-cat"><option>Work</option><option>Personal</option><option>Chores</option></select></div>
+      <div><label class="flbl" style="margin-top:0;">Status</label><select class="sel" id="mt-status"><option>To Do</option><option>In Progress</option></select></div>
+    </div>
     <label class="flbl">Due date (optional)</label><input class="inp" id="mt-due" type="date">
     <label class="flbl">Notes</label><input class="inp" id="mt-notes" placeholder="Extra context...">
-    <label class="flbl">Recurring?</label><select class="sel" id="mt-rec"><option value="no">No</option><option value="yes">Yes</option></select>
+    <div style="border:none;border-top:1px solid var(--br);margin:14px 0;"></div>
+    <label class="flbl" style="margin-top:0;margin-bottom:8px;">Repeat</label>
+    <div class="rec-freq-pills">
+      <div class="rec-fpill active" onclick="setRecFreq('none',this)">Does not repeat</div>
+      <div class="rec-fpill" onclick="setRecFreq('daily',this)">Daily</div>
+      <div class="rec-fpill" onclick="setRecFreq('weekly',this)">Weekly</div>
+      <div class="rec-fpill" onclick="setRecFreq('monthly',this)">Monthly</div>
+      <div class="rec-fpill" onclick="setRecFreq('yearly',this)">Yearly</div>
+    </div>
+    <div id="rec-panel" style="display:none;" class="rec-panel">
+      <div id="rec-interval-row" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--tx2);">Repeat every</span>
+        <input class="inp" id="rec-interval" type="number" value="1" min="1" style="width:52px;text-align:center;" oninput="updateRecSummary()">
+        <span style="font-size:12px;color:var(--tx2);" id="rec-interval-unit">week(s)</span>
+      </div>
+      <div id="rec-days-row" style="display:none;">
+        <div class="rec-sublbl">Repeat on</div>
+        <div class="rec-day-pills">
+          <div class="rec-dpill" data-day="0" onclick="toggleRecDay(this)">Su</div>
+          <div class="rec-dpill" data-day="1" onclick="toggleRecDay(this)">Mo</div>
+          <div class="rec-dpill" data-day="2" onclick="toggleRecDay(this)">Tu</div>
+          <div class="rec-dpill" data-day="3" onclick="toggleRecDay(this)">We</div>
+          <div class="rec-dpill" data-day="4" onclick="toggleRecDay(this)">Th</div>
+          <div class="rec-dpill" data-day="5" onclick="toggleRecDay(this)">Fr</div>
+          <div class="rec-dpill" data-day="6" onclick="toggleRecDay(this)">Sa</div>
+        </div>
+      </div>
+      <div id="rec-monthday-row" style="display:none;margin-bottom:12px;">
+        <div class="rec-sublbl">Repeat on</div>
+        <select class="sel" id="rec-monthday" onchange="updateRecSummary()">
+          <option value="1">Day 1 of month</option>
+          <option value="15">Day 15 of month</option>
+          <option value="last">Last day of month</option>
+        </select>
+      </div>
+      <div class="rec-sublbl">Ends</div>
+      <div class="rec-ends">
+        <label class="rec-end-opt"><input type="radio" name="rec-ends" value="never" checked onchange="updateRecSummary()"> Never</label>
+        <label class="rec-end-opt"><input type="radio" name="rec-ends" value="date" onchange="updateRecSummary()"> On date <input class="inp" id="rec-enddate" type="date" style="width:150px;margin-left:8px;" oninput="updateRecSummary()"></label>
+        <label class="rec-end-opt"><input type="radio" name="rec-ends" value="count" onchange="updateRecSummary()"> After <input class="inp" id="rec-count" type="number" value="10" min="1" style="width:52px;text-align:center;margin:0 6px;" oninput="updateRecSummary()"> occurrences</label>
+      </div>
+      <div class="rec-summary" id="rec-summary">Does not repeat</div>
+    </div>
     <div class="mfooter"><button class="btn sec" onclick="closeM('m-task')">Cancel</button><button class="btn" id="mt-save" onclick="saveTask()">Save to Notion</button></div>
   </div>
 </div>
@@ -953,6 +1012,39 @@ input[type=number]{-moz-appearance:textfield;}
     <label class="flbl">Reps</label><input class="inp" id="moo-reps" inputmode="numeric" placeholder="12">
     <label class="flbl">Weight (lbs)</label><input class="inp" id="moo-wt" type="number" inputmode="decimal" placeholder="0">
     <div class="mfooter"><button class="btn sec" onclick="closeM('m-oneoff')">Cancel</button><button class="btn" onclick="addOneOff()">Add to session</button></div>
+  </div>
+</div>
+
+<!-- EDIT FOOD MODAL -->
+<div id="m-editfood" style="display:none;" class="overlay">
+  <div class="modal"><div class="mtitle">Edit food entry</div>
+    <input type="hidden" id="mef-id">
+    <label class="flbl">Food name</label><input class="inp" id="mef-name" placeholder="Food name">
+    <label class="flbl">Meal</label>
+    <select class="sel" id="mef-meal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option><option>Post-Workout</option><option>Pre-Workout</option></select>
+    <label class="flbl">Quantity &amp; unit</label>
+    <div style="display:flex;gap:8px;">
+      <input class="inp" id="mef-qty" type="number" inputmode="decimal" placeholder="100" style="flex:1;">
+      <select class="sel" id="mef-unit" style="width:80px;"><option>g</option><option>ml</option><option>oz</option><option>cup</option><option>tbsp</option><option>tsp</option><option>slice</option><option>scoop</option></select>
+    </div>
+    <label class="flbl">Macros</label>
+    <div class="g2" style="gap:8px;">
+      <div><label style="font-size:11px;color:var(--tx3);">Calories</label><input class="inp" id="mef-cals" type="number" inputmode="decimal" placeholder="0"></div>
+      <div><label style="font-size:11px;color:var(--tx3);">Protein (g)</label><input class="inp" id="mef-prot" type="number" inputmode="decimal" placeholder="0"></div>
+      <div><label style="font-size:11px;color:var(--tx3);">Carbs (g)</label><input class="inp" id="mef-carb" type="number" inputmode="decimal" placeholder="0"></div>
+      <div><label style="font-size:11px;color:var(--tx3);">Fat (g)</label><input class="inp" id="mef-fat" type="number" inputmode="decimal" placeholder="0"></div>
+    </div>
+    <div style="margin-top:14px;padding:10px 12px;background:var(--ac-bg);border:1px solid var(--ac-br);border-radius:var(--rs);">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--tx2);">
+        <input type="checkbox" id="mef-save-lib" style="width:16px;height:16px;">
+        Save to food library as custom food
+      </label>
+    </div>
+    <div class="mfooter">
+      <button class="btn danger" onclick="deleteFoodFromModal()">Delete</button>
+      <button class="btn sec" onclick="closeM('m-editfood')">Cancel</button>
+      <button class="btn" onclick="saveEditedFood()">Save changes</button>
+    </div>
   </div>
 </div>
 
@@ -1221,16 +1313,153 @@ function hTab(el,f){el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.cl
 function fTab(el,f){el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');S.finFilter=f;renderFinTab();}
 
 // ── TASKS ────────────────────────────────────────────────
+// ── RECURRENCE ────────────────────────────────────────────
+const REC = { freq:'none', interval:1, days:[], monthDay:'1', ends:'never', endDate:'', endCount:10 };
+
+function setRecFreq(freq, el){
+  REC.freq = freq;
+  document.querySelectorAll('.rec-fpill').forEach(p=>p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const panel = document.getElementById('rec-panel');
+  const daysRow = document.getElementById('rec-days-row');
+  const mdRow = document.getElementById('rec-monthday-row');
+  const intervalRow = document.getElementById('rec-interval-row');
+  const unitEl = document.getElementById('rec-interval-unit');
+  if(freq === 'none'){
+    if(panel) panel.style.display = 'none';
+  } else {
+    if(panel) panel.style.display = 'block';
+    if(daysRow) daysRow.style.display = freq==='weekly'?'block':'none';
+    if(mdRow) mdRow.style.display = freq==='monthly'?'block':'none';
+    if(intervalRow) intervalRow.style.display = freq==='monthly'?'none':'flex';
+    if(unitEl) unitEl.textContent = {daily:'day(s)',weekly:'week(s)',yearly:'year(s)'}[freq]||'';
+  }
+  updateRecSummary();
+}
+
+function toggleRecDay(el){
+  el.classList.toggle('active');
+  REC.days = Array.from(document.querySelectorAll('.rec-dpill.active')).map(d=>parseInt(d.dataset.day));
+  updateRecSummary();
+}
+
+function updateRecSummary(){
+  const freq = REC.freq;
+  const interval = parseInt(document.getElementById('rec-interval')?.value)||1;
+  const ends = document.querySelector('input[name="rec-ends"]:checked')?.value||'never';
+  const endDate = document.getElementById('rec-enddate')?.value||'';
+  const endCount = document.getElementById('rec-count')?.value||10;
+  const monthDay = document.getElementById('rec-monthday')?.value||'1';
+  const days = Array.from(document.querySelectorAll('.rec-dpill.active')).map(d=>parseInt(d.dataset.day));
+  const dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let text = 'Does not repeat';
+  if(freq==='daily') text = interval===1?'Every day':'Every '+interval+' days';
+  else if(freq==='weekly'){
+    const dn = days.map(d=>dayNames[d]).join(', ');
+    text = interval===1?'Every week on '+(dn||'—'):'Every '+interval+' weeks on '+(dn||'—');
+  }
+  else if(freq==='monthly'){
+    const md = monthDay==='last'?'the last day':('the '+monthDay+(monthDay==='1'?'st':monthDay==='2'?'nd':monthDay==='3'?'rd':'th'));
+    text = 'Monthly on '+md;
+  }
+  else if(freq==='yearly') text = 'Every year';
+  if(freq!=='none'){
+    if(ends==='date'&&endDate) text += ' · until '+new Date(endDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    else if(ends==='count') text += ' · '+endCount+' times';
+    else text += ' · never ends';
+  }
+  const el = document.getElementById('rec-summary');
+  if(el) el.textContent = text;
+  // Store in REC
+  Object.assign(REC, {freq, interval, days, monthDay, ends, endDate, endCount:parseInt(endCount)||10});
+}
+
+function getRecPattern(){
+  if(REC.freq==='none') return null;
+  return {
+    freq:REC.freq, interval:REC.interval||1,
+    days:REC.days, monthDay:REC.monthDay,
+    ends:REC.ends, endDate:REC.endDate, endCount:REC.endCount
+  };
+}
+
+function recToText(p){
+  if(!p||p.freq==='none') return '';
+  const dayNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const interval = p.interval||1;
+  if(p.freq==='daily') return interval===1?'Every day':'Every '+interval+' days';
+  if(p.freq==='weekly'){
+    const dn=(p.days||[]).map(d=>dayNames[d]).join(', ');
+    return interval===1?'Every '+dn:'Every '+interval+' weeks on '+dn;
+  }
+  if(p.freq==='monthly'){
+    const md=p.monthDay==='last'?'the last day':'the '+(p.monthDay||1)+(p.monthDay==='1'?'st':p.monthDay==='2'?'nd':p.monthDay==='3'?'rd':'th');
+    return 'Monthly on '+md;
+  }
+  if(p.freq==='yearly') return 'Every year';
+  return '';
+}
+
+function calcNextDue(p, fromDateStr){
+  if(!p||p.freq==='none') return null;
+  const from = new Date(fromDateStr+'T12:00:00');
+  const interval = p.interval||1;
+  if(p.freq==='daily'){
+    const d=new Date(from);d.setDate(d.getDate()+interval);
+    return d.toISOString().split('T')[0];
+  }
+  if(p.freq==='weekly'){
+    const days=(p.days||[]).sort((a,b)=>a-b);
+    if(!days.length) return null;
+    for(let i=1;i<=7*interval;i++){
+      const d=new Date(from);d.setDate(from.getDate()+i);
+      if(days.includes(d.getDay())) return d.toISOString().split('T')[0];
+    }
+    return null;
+  }
+  if(p.freq==='monthly'){
+    const d=new Date(from);d.setMonth(d.getMonth()+interval);
+    if(p.monthDay==='last') d.setDate(new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
+    else d.setDate(parseInt(p.monthDay)||1);
+    return d.toISOString().split('T')[0];
+  }
+  if(p.freq==='yearly'){
+    const d=new Date(from);d.setFullYear(d.getFullYear()+interval);
+    return d.toISOString().split('T')[0];
+  }
+  return null;
+}
+
+function openTaskModal(){
+  // Reset recurrence picker
+  Object.assign(REC,{freq:'none',interval:1,days:[],monthDay:'1',ends:'never',endDate:'',endCount:10});
+  document.querySelectorAll('.rec-fpill').forEach((p,i)=>p.classList.toggle('active',i===0));
+  document.querySelectorAll('.rec-dpill').forEach(p=>p.classList.remove('active'));
+  const panel=document.getElementById('rec-panel');if(panel)panel.style.display='none';
+  const sum=document.getElementById('rec-summary');if(sum)sum.textContent='Does not repeat';
+  const rb=document.querySelector('input[name="rec-ends"][value="never"]');if(rb)rb.checked=true;
+  openM('m-task');
+}
+
 function parseTasks(results){
-  return results.map(p=>({
-    id:p.id,
-    name:p.properties['Task Name']?.title?.[0]?.plain_text||'',
-    status:p.properties['Status']?.select?.name||'To Do',
-    cat:p.properties['Category']?.select?.name||'Personal',
-    due:p.properties['Due Date']?.date?.start||'',
-    notes:p.properties['Notes']?.rich_text?.[0]?.plain_text||'',
-    rec:p.properties['Recurring']?.checkbox||false,
-  })).filter(t=>t.name);
+  return results.map(p=>{
+    const recStr=p.properties['Recurrence Pattern']?.rich_text?.[0]?.plain_text||'';
+    let recPattern=null;
+    try{if(recStr)recPattern=JSON.parse(recStr);}catch(e){}
+    // Fallback for old checkbox-only recurring tasks
+    if(!recPattern&&p.properties['Recurring']?.checkbox)recPattern={freq:'weekly',interval:1,days:[0],monthDay:'1',ends:'never',endDate:'',endCount:10};
+    return {
+      id:p.id,
+      name:p.properties['Task Name']?.title?.[0]?.plain_text||'',
+      status:p.properties['Status']?.select?.name||'To Do',
+      cat:p.properties['Category']?.select?.name||'Personal',
+      due:p.properties['Due Date']?.date?.start||'',
+      notes:p.properties['Notes']?.rich_text?.[0]?.plain_text||'',
+      rec:!!recPattern,
+      recPattern,
+      occurrences:p.properties['Occurrences Completed']?.number||0,
+    };
+  }).filter(t=>t.name);
 }
 async function loadTasks(){
   const cached=cacheGet('tasks');
@@ -1262,9 +1491,14 @@ function renderTasks(){
       const bc=t.cat==='Work'?'bbl':t.cat==='Personal'?'bgn':'bpk';
       const ov=t.due&&t.due<today&&t.status!=='Done';
       const ds=t.due?new Date(t.due+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      const recLabel=t.rec&&t.recPattern?recToText(t.recPattern):'';
       html+=`<div class="trow" draggable="true" data-id="${t.id}" ondragstart="dStart(event)" ondragover="dOver(event)" ondrop="dDrop(event,true)">
         <div class="tchk ${cc}" onclick="cycleTask('${t.id}')">${t.status==='Done'?'✓':''}</div>
-        <div class="tmain"><div class="tname${t.status==='Done'?' done':''}">${t.name}${t.rec?' <span style="color:var(--tx3);font-size:11px;">↻</span>':''}</div>${t.notes?`<div class="tnote">${t.notes}</div>`:''}</div>
+        <div class="tmain">
+          <div class="tname${t.status==='Done'?' done':''}">${t.name}</div>
+          ${recLabel?`<div class="rec-info">↻ ${recLabel}</div>`:''}
+          ${t.notes?`<div class="tnote">${t.notes}</div>`:''}
+        </div>
         <div class="tmeta">${ds?`<span class="tdue${ov?' over':''}">${ov?'Overdue':ds}</span>`:''}<span class="b ${bc}">${t.cat}</span><span style="color:var(--color-text-danger);cursor:pointer;padding:4px;font-size:14px;opacity:0.6;" onclick="deleteItem(S.tasks,'${t.id}',DB.tasks,renderTasks)" title="Delete">🗑</span></div>
       </div>`;
     });
@@ -1281,7 +1515,36 @@ function renderTasks(){
 function cycleTask(id){
   const t=S.tasks.find(t=>t.id===id);if(!t)return;
   const c=['To Do','In Progress','Done'];
-  t.status=c[(c.indexOf(t.status)+1)%3];
+  const nextStatus=c[(c.indexOf(t.status)+1)%3];
+  // Recurring completion — reset and advance due date
+  if(nextStatus==='Done'&&t.rec&&t.recPattern){
+    const today=localDate();
+    const nextDue=calcNextDue(t.recPattern,t.due||today);
+    const newOcc=(t.occurrences||0)+1;
+    const pat=t.recPattern;
+    let shouldEnd=(pat.ends==='count'&&newOcc>=pat.endCount)||(pat.ends==='date'&&pat.endDate&&today>=pat.endDate);
+    if(shouldEnd){
+      t.status='Done';t.rec=false;t.recPattern=null;
+      renderTasks();
+      toast('Task complete — recurrence ended');
+      if(!id.startsWith('l')){
+        const p={'Status':{select:{name:'Done'}},'Recurring':{checkbox:false},'Recurrence Pattern':{rich_text:[{text:{content:''}}]}};
+        if(S.online)nUpdate(id,p);else enqueue({type:'update',id,props:p});
+      }
+    } else {
+      t.status='To Do';t.due=nextDue||t.due;t.occurrences=newOcc;
+      renderTasks();
+      const nd=nextDue?new Date(nextDue+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'soon';
+      toast('Done — next due '+nd);
+      if(!id.startsWith('l')){
+        const p={'Status':{select:{name:'To Do'}},'Occurrences Completed':{number:newOcc}};
+        if(nextDue)p['Due Date']={date:{start:nextDue}};
+        if(S.online)nUpdate(id,p);else enqueue({type:'update',id,props:p});
+      }
+    }
+    return;
+  }
+  t.status=nextStatus;
   renderTasks();
   if(!id.startsWith('l')){
     const p={'Status':{select:{name:t.status}}};
@@ -1296,15 +1559,20 @@ async function saveTask(){
   const status=document.getElementById('mt-status').value;
   const due=document.getElementById('mt-due').value;
   const notes=document.getElementById('mt-notes').value;
-  const rec=document.getElementById('mt-rec').value==='yes';
+  const recPattern=getRecPattern();
   const btn=document.getElementById('mt-save');btn.textContent='Saving...';
-  const props={'Task Name':{title:[{text:{content:name}}]},'Category':{select:{name:cat}},'Status':{select:{name:status}},'Recurring':{checkbox:rec}};
+  const props={'Task Name':{title:[{text:{content:name}}]},'Category':{select:{name:cat}},'Status':{select:{name:status}},'Recurring':{checkbox:!!recPattern}};
   if(notes)props['Notes']={rich_text:[{text:{content:notes}}]};
   if(due)props['Due Date']={date:{start:due}};
+  if(recPattern){
+    props['Recurrence Pattern']={rich_text:[{text:{content:JSON.stringify(recPattern)}}]};
+    props['Occurrences Completed']={number:0};
+    if(due){const nd=calcNextDue(recPattern,due);if(nd)props['Next Due']={date:{start:nd}};}
+  }
   let nid='l'+Date.now();
   if(S.online){const r=await nCreate(DB.tasks,props);if(r?.id)nid=r.id;else enqueue({type:'create',db:DB.tasks,props});}
   else enqueue({type:'create',db:DB.tasks,props});
-  S.tasks.unshift({id:nid,name,status,cat,due,notes,rec});
+  S.tasks.unshift({id:nid,name,status,cat,due,notes,rec:!!recPattern,recPattern,occurrences:0});
   renderTasks();closeM('m-task');
   ['mt-name','mt-notes'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   document.getElementById('mt-due').value='';
@@ -1483,7 +1751,7 @@ async function createLinkedConcept(ideaTitle,proj){
 // ── JOURNAL ───────────────────────────────────────────────
 async function loadJournal(){
   const cached=cacheGet('journal');if(cached?.data)S.journal=cached.data;
-  const data=await nQuery(DB.journal,null,[{property:'Journal Date',direction:'descending'}]);
+  const data=await nQuery(DB.journal,null,[{property:'Created time',direction:'descending'}]);
   if(!data?.results)return;
   const loaded=data.results.map(p=>({
     id:p.id,
@@ -1873,7 +2141,14 @@ async function saveCheckin(){
 
 // ── PROGRAM ───────────────────────────────────────────────
 function parseProgram(results){
-  return results.map(p=>({id:p.id,exercise:p.properties['Exercise']?.title?.[0]?.plain_text||'',day:p.properties['Day']?.select?.name||'',sessionType:p.properties['Session Type']?.select?.name||'',sets:p.properties['Sets']?.number||0,reps:p.properties['Reps']?.rich_text?.[0]?.plain_text||'',targetWeight:p.properties['Target Weight']?.number||0,order:p.properties['Order']?.number||0,notes:p.properties['Notes']?.rich_text?.[0]?.plain_text||'',muscleGroup:p.properties['Muscle Group']?.select?.name||'',isTemplate:p.properties['Is Template']?.checkbox||false})).filter(e=>e.exercise);
+  const seen=new Set();
+  return results.map(p=>({id:p.id,exercise:p.properties['Exercise']?.title?.[0]?.plain_text||'',day:p.properties['Day']?.select?.name||'',sessionType:p.properties['Session Type']?.select?.name||'',sets:p.properties['Sets']?.number||0,reps:p.properties['Reps']?.rich_text?.[0]?.plain_text||'',targetWeight:p.properties['Target Weight']?.number||0,order:p.properties['Order']?.number||0,notes:p.properties['Notes']?.rich_text?.[0]?.plain_text||'',muscleGroup:p.properties['Muscle Group']?.select?.name||'',isTemplate:p.properties['Is Template']?.checkbox||false}))
+  .filter(e=>{
+    if(!e.exercise)return false;
+    const key=(e.exercise.toLowerCase().trim()+e.day).replace(/\s+/g,'');
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
 }
 async function loadProgram(){
   const cached=cacheGet('program');if(cached?.data){S.program=cached.data;}
@@ -2440,7 +2715,7 @@ function renderNutrition(){
         <div class="mcn">${mIcons[mt]||'🍽'} ${mt}</div>
         <div style="text-align:right;"><div class="mcc">${mc?mc+' kcal':'—'}</div>${mc?`<div class="mcm">P${Math.round(mp)}g·C${Math.round(mcb)}g·F${Math.round(mf)}g</div>`:''}</div>
       </div>
-      ${foods.map(f=>`<div class="frow"><span class="fn">${f.name}</span><span class="fq">${f.qty}${f.unit}</span><span class="fc">${f.cals}kcal</span><span class="fm">P${Math.round(f.prot)}g C${Math.round(f.carb)}g F${Math.round(f.fat)}g</span></div>`).join('')}
+      ${foods.map(f=>`<div class="frow"><span class="fn">${f.name}</span><span class="fq">${f.qty}${f.unit}</span><span class="fc">${f.cals}kcal</span><span class="fm">P${Math.round(f.prot)}g C${Math.round(f.carb)}g F${Math.round(f.fat)}g</span><span style="display:flex;gap:4px;flex-shrink:0;"><span style="cursor:pointer;color:var(--ac);font-size:12px;padding:2px 5px;" onclick="editFood('${f.id}')">✏️</span><span style="cursor:pointer;color:var(--rd);font-size:12px;padding:2px 5px;" onclick="deleteFoodItem('${f.id}')">🗑</span></span></div>`).join('')}
       <div class="addfood" onclick="quickAddFood('${mt}')">+ Add food to ${mt.toLowerCase()}</div>
     </div>`;
   }).join('');
@@ -2528,6 +2803,77 @@ async function saveSearchFood(){
   const fsi=document.getElementById('fsi');if(fsi)fsi.value='';
   const fsr=document.getElementById('fsresults');if(fsr)fsr.innerHTML='';
 }
+function editFood(id){
+  const f=S.foodlog.find(x=>x.id===id);if(!f)return;
+  document.getElementById('mef-id').value=id;
+  document.getElementById('mef-name').value=f.name||'';
+  document.getElementById('mef-meal').value=f.mealType||'Breakfast';
+  document.getElementById('mef-qty').value=f.qty||100;
+  document.getElementById('mef-unit').value=f.unit||'g';
+  document.getElementById('mef-cals').value=f.cals||0;
+  document.getElementById('mef-prot').value=f.prot||0;
+  document.getElementById('mef-carb').value=f.carb||0;
+  document.getElementById('mef-fat').value=f.fat||0;
+  const cb=document.getElementById('mef-save-lib');if(cb)cb.checked=false;
+  openM('m-editfood');
+}
+
+async function saveEditedFood(){
+  const id=document.getElementById('mef-id').value;
+  const f=S.foodlog.find(x=>x.id===id);if(!f)return;
+  const name=document.getElementById('mef-name').value.trim()||f.name;
+  const mt=document.getElementById('mef-meal').value;
+  const qty=parseFloat(document.getElementById('mef-qty').value)||f.qty;
+  const unit=document.getElementById('mef-unit').value;
+  const cals=parseFloat(document.getElementById('mef-cals').value)||0;
+  const prot=parseFloat(document.getElementById('mef-prot').value)||0;
+  const carb=parseFloat(document.getElementById('mef-carb').value)||0;
+  const fat=parseFloat(document.getElementById('mef-fat').value)||0;
+  // Update local state
+  Object.assign(f,{name,mealType:mt,qty,unit,cals,prot,carb,fat});
+  // Update in Notion if real ID
+  if(!id.startsWith('l')&&S.online){
+    const props={
+      'Food Name':{title:[{text:{content:name}}]},
+      'Meal Type':{select:{name:mt}},
+      'Quantity':{number:qty},
+      'Unit':{select:{name:unit}},
+      'Calories':{number:cals},
+      'Protein':{number:prot},
+      'Carbs':{number:carb},
+      'Fat':{number:fat},
+    };
+    await nUpdate(id,props);
+  }
+  // Save to food library if checked
+  const saveLib=document.getElementById('mef-save-lib')?.checked;
+  if(saveLib){
+    const libProps={
+      'Food Name':{title:[{text:{content:name}}]},
+      'Calories Per 100g':{number:Math.round(cals/qty*100)},
+      'Protein Per 100g':{number:Math.round(prot/qty*100)},
+      'Carbs Per 100g':{number:Math.round(carb/qty*100)},
+      'Fat Per 100g':{number:Math.round(fat/qty*100)},
+      'Is Custom':{checkbox:true},
+    };
+    if(S.online)await nCreate(DB.foodlib,libProps);
+    toast('Saved to food library');
+  }
+  closeM('m-editfood');
+  renderNutrition();
+  toast('Food entry updated');
+}
+
+function deleteFoodItem(id){
+  deleteItem(S.foodlog,id,DB.foodlog,renderNutrition);
+}
+
+function deleteFoodFromModal(){
+  const id=document.getElementById('mef-id').value;
+  closeM('m-editfood');
+  deleteFoodItem(id);
+}
+
 function openFoodSearch(){
   const fsr=document.getElementById('fsresults');if(fsr)fsr.innerHTML='';
   const fsi=document.getElementById('fsi');if(fsi)fsi.value='';
