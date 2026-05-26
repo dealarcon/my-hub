@@ -693,28 +693,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- HEALTH -->
 <div class="page" id="p-health">
-  <div style="font-size:24px;font-weight:600;margin-bottom:4px;"><i class="ti ti-activity" aria-hidden="true" style="font-size:22px;vertical-align:-3px;margin-right:6px;"></i>Health & Fitness</div>
-  <div class="msub" style="margin-bottom:24px;" id="healthsub"></div>
-  <div class="g4" style="margin-bottom:22px;">
-    <div class="card"><div class="mlbl">Current</div><div class="mval" id="hcurrent">—</div></div>
-    <div class="card"><div class="mlbl">Target</div><div class="mval" id="htarget">—</div></div>
-    <div class="card"><div class="mlbl">To lose</div><div class="mval" id="htlose">—</div></div>
-    <div class="card"><div class="mlbl">Weeks left</div><div class="mval cyan" id="hwleft">—</div></div>
-  </div>
-  <div class="slbl">Cut progress</div>
-  <div class="card" style="margin-bottom:22px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;color:var(--tx2);" id="hproglbl"></span><span class="b bgn" id="hprogst">On track</span></div>
-    <div class="pb"><div class="pf" id="hcutfil" style="width:0%;background:var(--ac);"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx3);margin-top:4px;" id="hprogsub"></div>
-  </div>
-  <div class="slbl">Hero lifts</div>
-  <div class="g2" style="margin-bottom:22px;" id="herolifts"></div>
-  <div class="slbl">Wellness trends — this week</div>
-  <div class="card" style="margin-bottom:22px;">
-    <div class="wellrow"><span class="welllbl">Energy</span><div class="bchart" id="wte"></div></div>
-    <div class="wellrow"><span class="welllbl">Mood</span><div class="bchart" id="wtm"></div></div>
-    <div class="wellrow"><span class="welllbl">Sleep quality</span><div class="bchart" id="wts"></div></div>
-  </div>
+  <div id="healthcontent"><div class="empty">Loading health data...</div></div>
 </div>
 
 <!-- WORKOUT -->
@@ -2806,12 +2785,24 @@ async function _doLogSession(sessionData,sname,today){
   else enqueue({type:'create',db:DB.history,props});
   S.history.unshift({id:nid,name:sname,date:today,type:sType,volume:tv,sets:ts,exercises:exCount,duration:el});
   cacheSet('history',S.history);
-  // Log individual exercise workouts
+  // Log individual exercise workouts — one row per SET for full granularity
   if(S.session){
     for(const ex of (S.session.exercises||[])){
       const done=ex.sets.filter(s=>s.done);if(!done.length)continue;
-      const ep={'Session':{title:[{text:{content:sname+' · '+ex.exercise}}]},'Date':{date:{start:today}},'Type':{select:{name:sType}},'Exercise':{rich_text:[{text:{content:ex.exercise}}]},'Sets':{number:done.length},'Reps':{number:done[0]?.reps||0},'Weight':{number:done[0]?.weight||0}};
-      if(S.online)await nCreate(DB.workouts,ep);else enqueue({type:'create',db:DB.workouts,props:ep});
+      for(let si=0;si<done.length;si++){
+        const s=done[si];
+        const ep={
+          'Session':{title:[{text:{content:sname+' · '+ex.exercise+' S'+(si+1)}}]},
+          'Date':{date:{start:today}},
+          'Type':{select:{name:sType}},
+          'Exercise':{rich_text:[{text:{content:ex.exercise}}]},
+          'Sets':{number:1},
+          'Set Number':{number:si+1},
+          'Reps':{number:s.reps||0},
+          'Weight':{number:s.weight||0}
+        };
+        if(S.online)await nCreate(DB.workouts,ep);else enqueue({type:'create',db:DB.workouts,props:ep});
+      }
     }
   }
   S.session=null;localStorage.removeItem('wosession');localStorage.removeItem('wostart');
@@ -2852,11 +2843,12 @@ function renderHistSum(list){
     const ds=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'' ;
     const delBtn=isMob?'':`<button onclick="histDeleteStart('${s.id}')" class="hist-del-btn" title="Delete" style="opacity:0;width:28px;height:28px;border-radius:7px;border:1px solid rgba(248,113,113,.2);background:rgba(248,113,113,.08);color:#f87171;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:opacity .15s;flex-shrink:0;"><i class="ti ti-trash"></i></button>`;
     return`<div class="hist-card" data-id="${s.id}" style="border:1px solid var(--br);border-radius:var(--r);margin-bottom:9px;overflow:hidden;position:relative;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sf2);border-bottom:1px solid var(--br);" onmouseenter="this.querySelector('.hist-del-btn')&&(this.querySelector('.hist-del-btn').style.opacity='1')" onmouseleave="this.querySelector('.hist-del-btn')&&(this.querySelector('.hist-del-btn').style.opacity='0')">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sf2);border-bottom:1px solid var(--br);cursor:pointer;" onclick="openSessionDetail('${s.id}')" onmouseenter="this.querySelector('.hist-del-btn')&&(this.querySelector('.hist-del-btn').style.opacity='1')" onmouseleave="this.querySelector('.hist-del-btn')&&(this.querySelector('.hist-del-btn').style.opacity='0')">
         <div><div style="font-size:13px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px;">${s.name} <span class="b ${tc[s.type]||'bgy'}">${s.type}</span></div><div class="msub">${ds}</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="text-align:right;"><div style="font-size:13px;font-weight:500;">${s.volume.toLocaleString()} lbs</div><div class="msub">Total volume</div></div>
           ${delBtn}
+          <div class="sess-chevron" style="transition:transform .2s;color:var(--tx3);font-size:16px;flex-shrink:0;margin-top:2px;">&#8964;</div>
         </div>
       </div>
       <div style="display:flex;gap:18px;padding:9px 14px;flex-wrap:wrap;">
@@ -3579,17 +3571,194 @@ async function loadWorkoutLogs(exerciseName=null,splitType=null){
     :splitType?{property:'Type',select:{equals:splitType}}:null;
   const data=await nQuery(DB.workouts,filter,[{property:'Date',direction:'ascending'}]);
   if(!data?.results)return[];
-  const logs=data.results.map(p=>({
-    id:p.id,
-    exercise:p.properties['Exercise']?.rich_text?.[0]?.plain_text||'',
-    date:p.properties['Date']?.date?.start||'',
-    type:p.properties['Type']?.select?.name||'',
-    sets:p.properties['Sets']?.number||0,
-    reps:p.properties['Reps']?.number||0,
-    weight:p.properties['Weight']?.number||0,
-    volume:(p.properties['Sets']?.number||0)*(p.properties['Reps']?.number||0)*(p.properties['Weight']?.number||0),
-  })).filter(l=>l.exercise&&l.date);
-  return logs;
+  const rows=data.results
+    .filter(p=>{const s=p.properties['Session']?.title?.[0]?.plain_text||'';return !s.includes('DUPLICATE');})
+    .map(p=>({
+      id:p.id,
+      exercise:(p.properties['Exercise']?.rich_text?.[0]?.plain_text||'').trim(),
+      date:(p.properties['Date']?.date?.start||'').split('T')[0],
+      type:p.properties['Type']?.select?.name||'',
+      setNumber:p.properties['Set Number']?.number||null,
+      reps:p.properties['Reps']?.number||0,
+      weight:p.properties['Weight']?.number||0,
+      sets:p.properties['Sets']?.number||0,
+    })).filter(l=>l.exercise&&l.date);
+  // Group by exercise+date to produce one summary log per exercise per session
+  const grouped={};
+  rows.forEach(r=>{
+    const key=r.date+'|'+r.exercise.toLowerCase();
+    if(!grouped[key]){grouped[key]={id:r.id,exercise:r.exercise,date:r.date,type:r.type,setRows:[],sets:0,volume:0,maxWeight:0};}
+    grouped[key].setRows.push(r);
+    grouped[key].sets+=r.sets||1;
+    grouped[key].volume+=r.weight*r.reps*(r.sets||1);
+    grouped[key].maxWeight=Math.max(grouped[key].maxWeight,r.weight);
+  });
+  return Object.values(grouped).map(g=>({
+    ...g,
+    reps:g.setRows[0]?.reps||0,
+    weight:g.maxWeight,
+  }));
+}
+
+// Session detail cache — keyed by sessionId, avoids repeat API calls
+const sessionDetailCache={};
+
+async function loadSessionDetail(session){
+  const cacheKey=session.date+'|'+session.type;
+  if(sessionDetailCache[cacheKey])return sessionDetailCache[cacheKey];
+  const filter={and:[
+    {property:'Date',date:{equals:session.date}},
+    {property:'Type',select:{equals:session.type}}
+  ]};
+  const data=await nQuery(DB.workouts,filter,[{property:'Date',direction:'ascending'}]);
+  if(!data?.results)return[];
+  const rows=data.results
+    .filter(p=>{
+      const sess=p.properties['Session']?.title?.[0]?.plain_text||'';
+      return !sess.startsWith('DUPLICATE')&&!sess.includes('DUPLICATE');
+    })
+    .map(p=>({
+      exercise:(p.properties['Exercise']?.rich_text?.[0]?.plain_text||'').trim(),
+      setNumber:p.properties['Set Number']?.number||null,
+      reps:p.properties['Reps']?.number||0,
+      weight:p.properties['Weight']?.number||0,
+      sets:p.properties['Sets']?.number||1,
+    })).filter(r=>r.exercise);
+  // Group by exercise, build set list
+  const exMap={};
+  rows.forEach(r=>{
+    if(!exMap[r.exercise])exMap[r.exercise]={exercise:r.exercise,sets:[]};
+    exMap[r.exercise].sets.push({setNumber:r.setNumber,reps:r.reps,weight:r.weight});
+  });
+  // Sort sets by set number within each exercise
+  const result=Object.values(exMap).map(ex=>({
+    ...ex,
+    sets:ex.sets.sort((a,b)=>(a.setNumber||0)-(b.setNumber||0)),
+    volume:ex.sets.reduce((a,s)=>a+s.weight*s.reps,0),
+  }));
+  sessionDetailCache[cacheKey]=result;
+  return result;
+}
+
+function openSessionDetail(sessionId){
+  const s=S.history.find(h=>h.id===sessionId);if(!s)return;
+  const isMob=window.innerWidth<768;
+  if(isMob)openSessionSheet(s);
+  else toggleSessionExpand(sessionId,s);
+}
+
+function openSessionSheet(session){
+  const existing=document.getElementById('sess-sheet-overlay');
+  if(existing)existing.remove();
+  const overlay=document.createElement('div');
+  overlay.id='sess-sheet-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  const ds=session.date?new Date(session.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  const tc={Push:'#60a5fa',Pull:'#c084fc',Legs:'#4ade80','Full Body':'#fbbf24'};
+  overlay.innerHTML=`<div style="background:#111318;border-radius:20px 20px 0 0;width:100%;max-width:540px;padding:20px 18px max(24px,env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <div style="width:32px;height:3px;border-radius:2px;background:rgba(255,255,255,.2);margin:0 auto 18px;"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <div style="font-size:16px;font-weight:500;color:#efefef;display:flex;align-items:center;gap:8px;">
+          ${session.name}
+          <span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.07);color:${tc[session.type]||'#666'};">${session.type}</span>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:3px;">${ds} · ${session.duration||0} min</div>
+      </div>
+      <span onclick="document.getElementById('sess-sheet-overlay').remove()" style="color:rgba(255,255,255,.3);font-size:20px;cursor:pointer;line-height:1;">✕</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;"><div style="font-size:13px;font-weight:500;color:#efefef;">${(session.volume||0).toLocaleString()}</div><div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:1px;">Total volume</div></div>
+      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;"><div style="font-size:13px;font-weight:500;color:#efefef;">${session.sets||0}</div><div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:1px;">Sets done</div></div>
+      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;"><div style="font-size:13px;font-weight:500;color:#efefef;">${session.exercises||0}</div><div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:1px;">Exercises</div></div>
+    </div>
+    <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Exercises</div>
+    <div id="sess-sheet-exercises" style="display:flex;flex-direction:column;gap:0;">
+      <div style="text-align:center;padding:16px;font-size:12px;color:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-loader-2" style="font-size:14px;"></i> Loading exercises...</div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  // Load data async
+  loadSessionDetail(session).then(exercises=>{
+    const el=document.getElementById('sess-sheet-exercises');if(!el)return;
+    if(!exercises.length){el.innerHTML='<div style="text-align:center;padding:12px;font-size:12px;color:rgba(255,255,255,.3);">No exercise data found</div>';return;}
+    el.innerHTML=exercises.map(ex=>{
+      const setRows=ex.sets.length>1
+        ?ex.sets.map((s,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="font-size:11px;color:rgba(255,255,255,.3);">Set ${s.setNumber||i+1}</span>
+            <span style="font-size:11px;color:rgba(255,255,255,.5);">${s.reps} reps @ ${s.weight||'BW'} lbs</span>
+            <span style="font-size:11px;color:#00d4d4;">${s.weight?((s.weight*s.reps).toLocaleString()+' lb'):'—'}</span>
+          </div>`).join('')
+        :'';
+      const setsStr=ex.sets.length===1
+        ?`${ex.sets[0].reps} reps @ ${ex.sets[0].weight||'BW'} lbs`
+        :`${ex.sets.length} sets`;
+      return`<div style="border-bottom:1px solid rgba(255,255,255,.07);padding:10px 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${setRows?'8px':'0'};">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#efefef;">${ex.exercise}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">${setsStr}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;font-weight:500;color:#00d4d4;">${ex.volume?ex.volume.toLocaleString()+' lb':'—'}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);">volume</div>
+          </div>
+        </div>
+        ${setRows}
+      </div>`;
+    }).join('');
+  }).catch(()=>{
+    const el=document.getElementById('sess-sheet-exercises');
+    if(el)el.innerHTML='<div style="text-align:center;padding:12px;font-size:12px;color:#f87171;">Failed to load — check your connection</div>';
+  });
+}
+
+function toggleSessionExpand(sessionId,session){
+  const card=document.querySelector('.hist-card[data-id="'+sessionId+'"]');if(!card)return;
+  const existing=card.querySelector('.sess-detail-expand');
+  if(existing){existing.remove();card.querySelector('.sess-chevron')&&(card.querySelector('.sess-chevron').style.transform='');return;}
+  const detail=document.createElement('div');
+  detail.className='sess-detail-expand';
+  detail.style.cssText='border-top:1px solid rgba(0,212,212,.15);background:var(--sf2);';
+  detail.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;"><div style="font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em;">Exercises</div><div id="det-count-${sessionId}" style="font-size:11px;color:var(--tx3);">Loading...</div></div><div id="det-body-${sessionId}" style="padding:0 14px 10px;"><div style="text-align:center;padding:12px;font-size:12px;color:var(--tx3);display:flex;align-items:center;justify-content:center;gap:5px;"><i class="ti ti-loader-2" style="font-size:14px;"></i> Loading exercises...</div></div>`;
+  card.appendChild(detail);
+  const chev=card.querySelector('.sess-chevron');if(chev)chev.style.transform='rotate(180deg)';
+  loadSessionDetail(session).then(exercises=>{
+    const body=document.getElementById('det-body-'+sessionId);
+    const ct=document.getElementById('det-count-'+sessionId);
+    if(ct)ct.textContent=exercises.length+' logged';
+    if(!body)return;
+    if(!exercises.length){body.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px 0;">No exercise data found</div>';return;}
+    body.innerHTML=`<table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="border-bottom:1px solid var(--br);">
+        <th style="font-size:10px;font-weight:500;color:var(--tx3);padding:5px 0;text-align:left;">Exercise</th>
+        <th style="font-size:10px;font-weight:500;color:var(--tx3);padding:5px 8px;text-align:right;">Sets</th>
+        <th style="font-size:10px;font-weight:500;color:var(--tx3);padding:5px 8px;text-align:right;">Reps</th>
+        <th style="font-size:10px;font-weight:500;color:var(--tx3);padding:5px 8px;text-align:right;">Weight</th>
+        <th style="font-size:10px;font-weight:500;color:var(--tx3);padding:5px 0;text-align:right;">Volume</th>
+      </tr></thead>
+      <tbody>${exercises.map(ex=>{
+        const variedWeight=new Set(ex.sets.map(s=>s.weight)).size>1;
+        const weightStr=variedWeight
+          ?ex.sets.map((s,i)=>`S${s.setNumber||i+1}:${s.weight}`).join(' / ')
+          :(ex.sets[0]?.weight||'BW')+' lbs';
+        const repsStr=new Set(ex.sets.map(s=>s.reps)).size>1
+          ?ex.sets.map((s,i)=>`S${s.setNumber||i+1}:${s.reps}`).join(' / ')
+          :(ex.sets[0]?.reps||0)+' reps';
+        return`<tr style="border-bottom:1px solid var(--br);">
+          <td style="font-size:12px;color:var(--tx);padding:8px 0;">${ex.exercise}</td>
+          <td style="font-size:12px;color:var(--tx2);padding:8px;text-align:right;">${ex.sets.length}</td>
+          <td style="font-size:12px;color:var(--tx2);padding:8px;text-align:right;">${repsStr}</td>
+          <td style="font-size:12px;color:var(--tx2);padding:8px;text-align:right;">${weightStr}</td>
+          <td style="font-size:12px;color:#00aaaa;font-weight:500;padding:8px 0;text-align:right;">${ex.volume?ex.volume.toLocaleString():'—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }).catch(()=>{
+    const body=document.getElementById('det-body-'+sessionId);
+    if(body)body.innerHTML='<div style="font-size:12px;color:var(--rd);padding:8px 0;">Failed to load exercises</div>';
+  });
 }
 
 // ── GOOGLE CALENDAR ──────────────────────────────────────
